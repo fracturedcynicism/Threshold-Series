@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Threshold Trilogy</title>
+<style>
+/* ─── TOKENS ──────────────────────────────────────────────────── */
+:root {
+  --bg:          #0d0b09;
+  --bg2:         #131009;
+  --bg3:         #1a1610;
+  --surface:     #1e1a13;
+  --surface2:    #252019;
+  --border:      #2e2820;
+  --border2:     #3d3628;
+  --ash:         #8c8070;
+  --smoke:       #b0a090;
+  --parchment:   #d4c8b0;
+  --cream:       #e8dfc8;
+  --ember:       #c8602a;
+  --ember2:      #e07840;
+  --gold:        #b8962a;
+  --gold2:       #d4b040;
+  --muted-red:   #8a3020;
+  --sidebar-w:   300px;
+  --hdr-h:       52px;
+  --font-serif:  'Georgia', 'Times New Roman', serif;
+  --font-mono:   'Courier New', Courier, monospace;
+  --ease:        cubic-bezier(0.4, 0, 0.2, 1);
+  --reading-max: 720px;
+}
+
+/* ─── RESET ───────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--parchment);
+  font-family: var(--font-serif);
+  line-height: 1.9;
+  font-size: 17px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── SCROLLBAR ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ash); }
+
+/* ─── FIXED HEADER ────────────────────────────────────────────── */
+#site-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--hdr-h);
+  background: rgba(13, 11, 9, 0.96);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  z-index: 200;
+  transition: border-color 0.3s var(--ease);
+}
+#site-header.scrolled { border-bottom-color: var(--border2); }
+
+#menu-btn {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--ash);
+  width: 36px; height: 36px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-shrink: 0;
+  transition: border-color 0.2s, color 0.2s;
+}
+#menu-btn:hover { border-color: var(--ember); color: var(--ember2); }
+#menu-btn span {
+  display: block;
+  width: 16px; height: 1px;
+  background: currentColor;
+  transition: transform 0.25s, opacity 0.25s, width 0.25s;
+}
+body.nav-open #menu-btn span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+body.nav-open #menu-btn span:nth-child(2) { opacity: 0; width: 0; }
+body.nav-open #menu-btn span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+#header-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--ash);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 0.4s var(--ease);
+}
+#header-title.visible { opacity: 1; }
+
+#header-chapter {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--border2);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  opacity: 0;
+  transition: opacity 0.4s var(--ease);
+}
+#header-chapter.visible { opacity: 1; }
+
+#progress-bar {
+  position: fixed;
+  top: var(--hdr-h);
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--muted-red), var(--ember), var(--gold));
+  width: 0%;
+  z-index: 201;
+  transition: width 0.1s linear;
+}
+
+/* ─── LAYOUT ──────────────────────────────────────────────────── */
+#layout {
+  display: flex;
+  padding-top: var(--hdr-h);
+  min-height: 100vh;
+}
+
+/* ─── SIDEBAR ─────────────────────────────────────────────────── */
+#sidebar {
+  position: fixed;
+  top: var(--hdr-h);
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-w);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  z-index: 150;
+  transform: translateX(-100%);
+  transition: transform 0.32s var(--ease), box-shadow 0.32s var(--ease);
+  display: flex;
+  flex-direction: column;
+}
+body.nav-open #sidebar {
+  transform: translateX(0);
+  box-shadow: 8px 0 40px rgba(0,0,0,0.7);
+}
+
+#sidebar-inner {
+  padding: 24px 0 40px;
+  flex: 1;
+}
+
+.nav-series-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  color: var(--border2);
+  text-transform: uppercase;
+  padding: 0 22px 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.nav-book {
+  margin-bottom: 4px;
+}
+
+.nav-book-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 22px 10px 18px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background 0.2s, border-color 0.2s;
+  user-select: none;
+}
+.nav-book-header:hover { background: var(--surface); }
+.nav-book-header.active { border-left-color: var(--ember); background: var(--surface); }
+
+.nav-book-num {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--border2);
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+.nav-book-title {
+  font-size: 11px;
+  color: var(--smoke);
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  flex: 1;
+}
+.nav-book-header.active .nav-book-title { color: var(--parchment); }
+
+.nav-book-arrow {
+  font-size: 9px;
+  color: var(--border2);
+  transition: transform 0.2s var(--ease);
+  flex-shrink: 0;
+}
+.nav-book-header.expanded .nav-book-arrow { transform: rotate(90deg); }
+
+.nav-chapters {
+  list-style: none;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.35s var(--ease);
+}
+.nav-chapters.open { max-height: 9999px; }
+
+.nav-chapters li a {
+  display: block;
+  padding: 6px 22px 6px 42px;
+  font-size: 11.5px;
+  color: var(--ash);
+  text-decoration: none;
+  line-height: 1.45;
+  border-left: 2px solid transparent;
+  margin-left: 3px;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.nav-chapters li a:hover {
+  color: var(--parchment);
+  background: var(--surface);
+}
+.nav-chapters li a.current {
+  color: var(--ember2);
+  border-left-color: var(--ember);
+  background: var(--surface);
+}
+
+.sidebar-footer {
+  padding: 16px 22px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--border2);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ─── OVERLAY ─────────────────────────────────────────────────── */
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 140;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.32s var(--ease);
+}
+body.nav-open #overlay {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ─── MAIN CONTENT ────────────────────────────────────────────── */
+#main {
+  flex: 1;
+  width: 100%;
+  min-height: calc(100vh - var(--hdr-h));
+}
+
+/* ─── HERO / TITLE PAGE ───────────────────────────────────────── */
+#title-page {
+  min-height: calc(100vh - var(--hdr-h));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 30%, rgba(200,96,42,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 60% at 20% 80%, rgba(138,48,32,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 60%, rgba(184,150,42,0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Grain texture */
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.series-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.35em;
+  color: var(--ash);
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  position: relative;
+}
+.series-eyebrow::before,
+.series-eyebrow::after {
+  content: '—';
+  margin: 0 12px;
+  opacity: 0.5;
+}
+
+.hero-title {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  font-weight: 400;
+  color: var(--cream);
+  text-align: center;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.hero-divider {
+  width: 48px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--ember), transparent);
+  margin: 28px auto;
+}
+
+.hero-books {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.hero-book-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  padding: 12px 24px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: rgba(30, 26, 19, 0.5);
+  transition: border-color 0.25s, background 0.25s, transform 0.2s;
+  text-decoration: none;
+  min-width: 340px;
+}
+.hero-book-item:hover {
+  border-color: var(--ember);
+  background: rgba(200, 96, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.hero-book-num {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ember);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.hero-book-name {
+  font-size: 13.5px;
+  color: var(--parchment);
+  letter-spacing: 0.06em;
+}
+
+/* ─── BOOK SECTION ────────────────────────────────────────────── */
+.book-section {
+  padding: 0;
+}
+
+.book-title-block {
+  padding: 80px 40px 50px;
+  max-width: var(--reading-max);
+  margin: 0 auto;
+  position: relative;
+}
+.book-title-block::before {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 60px;
+  background: linear-gradient(to bottom, var(--border), transparent);
+  margin: 0 auto 40px;
+}
+
+.book-number-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--ember);
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.book-main-title {
+  font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+  font-weight: 400;
+  color: var(--cream);
+  text-align: center;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
+}
+
+.book-ornament {
+  text-align: center;
+  color: var(--border2);
+  font-size: 14px;
+  letter-spacing: 0.4em;
+  margin: 32px 0;
+}
+
+/* ─── CHAPTER HEADING ─────────────────────────────────────────── */
+.chapter-block {
+  scroll-margin-top: calc(var(--hdr-h) + 20px);
+  padding: 48px 40px 0;
+  max-width: var(--reading-max);
+  margin: 0 auto;
+}
+
+.chapter-heading {
+  font-size: clamp(1.1rem, 2.5vw, 1.55rem);
+  font-weight: 400;
+  color: var(--cream);
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  margin-bottom: 6px;
+  position: relative;
+  padding-left: 18px;
+}
+.chapter-heading::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.2em;
+  bottom: 0.2em;
+  width: 2px;
+  background: var(--ember);
+  border-radius: 1px;
+}
+
+.chapter-sub {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  color: var(--border2);
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  padding-left: 18px;
+}
+
+/* ─── PROSE ───────────────────────────────────────────────────── */
+.prose-block {
+  max-width: var(--reading-max);
+  margin: 0 auto;
+  padding: 0 40px 0;
+}
+
+.prose-block p {
+  margin-bottom: 1.6em;
+  color: var(--parchment);
+  font-size: 17px;
+  line-height: 1.9;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+.prose-block p:first-child::first-letter {
+  font-size: 3em;
+  line-height: 0.75;
+  float: left;
+  margin: 0.08em 0.1em 0 0;
+  color: var(--ember2);
+  font-family: var(--font-serif);
+}
+
+/* Bold, italic, inline code */
+.prose-block strong { color: var(--cream); font-weight: 600; }
+.prose-block em { color: var(--smoke); font-style: italic; }
+
+/* Headings inside prose */
+.prose-block h1,
+.prose-block h2,
+.prose-block h3,
+.prose-block h4 {
+  font-weight: 400;
+  color: var(--cream);
+  letter-spacing: 0.05em;
+  margin: 2.2em 0 0.8em;
+  line-height: 1.35;
+}
+.prose-block h1 { font-size: 1.9rem; }
+.prose-block h2 { font-size: 1.5rem; }
+.prose-block h3 { font-size: 1.25rem; }
+.prose-block h4 { font-size: 1.1rem; color: var(--parchment); }
+
+/* Block quote */
+.prose-block blockquote {
+  border-left: 2px solid var(--border2);
+  margin: 2em 0;
+  padding: 0.5em 0 0.5em 24px;
+  color: var(--smoke);
+  font-style: italic;
+}
+
+/* Horizontal rule */
+.prose-block hr {
+  border: none;
+  text-align: center;
+  color: var(--border2);
+  letter-spacing: 0.5em;
+  font-size: 12px;
+  margin: 2.5em 0;
+}
+.prose-block hr::after { content: '· · ·'; }
+
+/* ─── PRE-FORMATTED / POETRY ──────────────────────────────────── */
+.prose-block pre {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  color: var(--smoke);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 1.8em 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border2);
+  padding: 20px 24px;
+  border-radius: 2px;
+}
+
+/* ─── RAW MARKDOWN FALLBACK ───────────────────────────────────── */
+/* when content is displayed as plain text paragraphs */
+.raw-line {
+  display: block;
+  min-height: 1em;
+}
+
+/* ─── SECTION DIVIDER ─────────────────────────────────────────── */
+.section-divider {
+  max-width: var(--reading-max);
+  margin: 48px auto;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.section-divider-glyph {
+  color: var(--border2);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  font-family: var(--font-mono);
+}
+
+/* ─── BACK TO TOP ─────────────────────────────────────────────── */
+#back-top {
+  position: fixed;
+  bottom: 28px;
+  right: 24px;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--ash);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, border-color 0.2s, color 0.2s, transform 0.2s;
+  z-index: 100;
+}
+#back-top.visible { opacity: 1; pointer-events: all; }
+#back-top:hover { border-color: var(--ember); color: var(--ember2); transform: translateY(-2px); }
+
+/* ─── NOTICE BOX ──────────────────────────────────────────────── */
+#content-notice {
+  display: none;
+  max-width: var(--reading-max);
+  margin: 48px auto;
+  padding: 32px 36px;
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--ember);
+  background: var(--surface);
+  border-radius: 2px;
+}
+#content-notice.show { display: block; }
+#content-notice h3 {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--ember);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+#content-notice p {
+  font-size: 14px;
+  color: var(--smoke);
+  line-height: 1.8;
+  margin-bottom: 10px;
+}
+#content-notice code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--gold2);
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 2px;
+  border: 1px solid var(--border2);
+}
+
+/* ─── FOOTER ──────────────────────────────────────────────────── */
+#site-footer {
+  max-width: var(--reading-max);
+  margin: 80px auto 0;
+  padding: 32px 40px 48px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--border2);
+  text-transform: uppercase;
+}
+
+/* ─── RESPONSIVE ──────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  :root { --sidebar-w: min(85vw, 300px); }
+  body { font-size: 16px; }
+
+  .hero-title { font-size: 1.8rem; }
+  .hero-book-item { min-width: 0; width: 100%; max-width: 340px; }
+  #title-page { padding: 48px 24px 60px; }
+
+  .book-title-block,
+  .chapter-block,
+  .prose-block,
+  .section-divider { padding-left: 22px; padding-right: 22px; }
+
+  .prose-block p { font-size: 16px; line-height: 1.85; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ────────────────────────────────────────────────── -->
+<header id="site-header">
+  <button id="menu-btn" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <span id="header-title">The Threshold Trilogy</span>
+  <span id="header-chapter"></span>
+</header>
+<div id="progress-bar"></div>
+
+<!-- ── SIDEBAR ───────────────────────────────────────────────── -->
+<nav id="sidebar" aria-label="Chapter navigation">
+  <div id="sidebar-inner">
+    <div class="nav-series-label">The Threshold Trilogy</div>
+    <div id="nav-tree"><!-- populated by JS --></div>
+  </div>
+  <div class="sidebar-footer">Navigate · Read · Descend</div>
+</nav>
+<div id="overlay" aria-hidden="true"></div>
+
+<!-- ── MAIN ──────────────────────────────────────────────────── -->
+<main id="main">
+  <section id="title-page" aria-label="Series title">
+    <div class="hero-bg"></div>
+    <div class="series-eyebrow">A Novella in Three Books</div>
+    <h1 class="hero-title">The Threshold Trilogy</h1>
+    <div class="hero-divider"></div>
+    <div class="hero-books" id="hero-books">
+      <!-- populated by JS -->
+    </div>
+  </section>
+
+  <div id="books-container">
+    <!-- populated by JS -->
+  </div>
+
+  <footer id="site-footer">The Threshold Trilogy &nbsp;·&nbsp; All rights reserved</footer>
+</main>
+
+<button id="back-top" aria-label="Back to top" title="Back to top">↑</button>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   CONTENT — Paste each book's raw Markdown here.
+   The keys BOOK_1_RAW, BOOK_2_RAW, BOOK_3_RAW must contain
+   the full, unchanged text of each .md file.
+   ══════════════════════════════════════════════════════════════ */
+
+const BOOK_1_RAW = `
+PASTE THE FULL CONTENT OF Book_1_FIFTEEN_CIGARETTES_AT_THE_THRESHOLD.md HERE
+`;
+
+const BOOK_2_RAW = `
+PASTE THE FULL CONTENT OF Book_2_The_Horizontal_Descent.md HERE
+`;
+
+const BOOK_3_RAW = `
+PASTE THE FULL CONTENT OF Book_3_The_Mother_s_Vigil.md HERE
+`;
+
+/* ══════════════════════════════════════════════════════════════
+   BOOK METADATA
+   ══════════════════════════════════════════════════════════════ */
+const BOOKS = [
+  {
+    id: 'book-1',
+    number: 'Book I',
+    title: 'Fifteen Cigarettes at the Threshold',
+    raw: BOOK_1_RAW,
+  },
+  {
+    id: 'book-2',
+    number: 'Book II',
+    title: 'The Horizontal Descent',
+    raw: BOOK_2_RAW,
+  },
+  {
+    id: 'book-3',
+    number: 'Book III',
+    title: "The Mother's Vigil",
+    raw: BOOK_3_RAW,
+  },
+];
+
+/* ══════════════════════════════════════════════════════════════
+   MARKDOWN → HTML  (lightweight, no external libs)
+   ══════════════════════════════════════════════════════════════ */
+function mdToHtml(md) {
+  /* We process line by line to preserve every character,
+     only adding structural HTML without altering content. */
+  const lines = md.split('\n');
+  let html = '';
+  let inParagraph = false;
+  let inBlockquote = false;
+  let inPre = false;
+  let preBuffer = '';
+
+  function closeParagraph() {
+    if (inParagraph) { html += '</p>\n'; inParagraph = false; }
+  }
+  function closeBlockquote() {
+    if (inBlockquote) { html += '</blockquote>\n'; inBlockquote = false; }
+  }
+
+  function escape(s) {
+    return s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function inlineMarkup(s) {
+    /* bold **x** or __x__ */
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    /* italic *x* or _x_ (single) */
+    s = s.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+    s = s.replace(/_([^_\n]+?)_/g, '<em>$1</em>');
+    /* inline code `x` */
+    s = s.replace(/`([^`]+?)`/g, '<code>$1</code>');
+    return s;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
+
+    /* Fenced code block */
+    if (!inPre && trimmed.startsWith('```')) {
+      closeParagraph(); closeBlockquote();
+      inPre = true;
+      preBuffer = '';
+      continue;
+    }
+    if (inPre) {
+      if (trimmed.startsWith('```')) {
+        html += '<pre>' + escape(preBuffer) + '</pre>\n';
+        inPre = false; preBuffer = '';
+      } else {
+        preBuffer += raw + '\n';
+      }
+      continue;
+    }
+
+    /* Blank line */
+    if (trimmed === '') {
+      closeParagraph(); closeBlockquote();
+      continue;
+    }
+
+    /* HR: --- or *** or ___ */
+    if (/^(\*\*\*|---|___)[\s*\-_]*$/.test(trimmed)) {
+      closeParagraph(); closeBlockquote();
+      html += '<hr>\n'; continue;
+    }
+
+    /* Headings (ATX) */
+    const hMatch = trimmed.match(/^(#{1,6})\s+(.*)/);
+    if (hMatch) {
+      closeParagraph(); closeBlockquote();
+      const level = hMatch[1].length;
+      const text = inlineMarkup(escape(hMatch[2]));
+      html += `<h${level}>${text}</h${level}>\n`;
+      continue;
+    }
+
+    /* Blockquote */
+    if (trimmed.startsWith('>')) {
+      closeParagraph();
+      const bText = inlineMarkup(escape(trimmed.slice(1).trim()));
+      if (!inBlockquote) { html += '<blockquote>'; inBlockquote = true; }
+      html += bText + '<br>';
+      continue;
+    } else {
+      closeBlockquote();
+    }
+
+    /* Paragraph / continuation */
+    const lineHtml = inlineMarkup(escape(raw));
+    if (!inParagraph) {
+      html += '<p>'; inParagraph = true;
+    } else {
+      html += '\n';
+    }
+    html += lineHtml;
+  }
+
+  closeParagraph();
+  closeBlockquote();
+  if (inPre) html += '<pre>' + escape(preBuffer) + '</pre>\n';
+
+  return html;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CHAPTER DETECTION
+   ══════════════════════════════════════════════════════════════ */
+function extractChapters(rawText) {
+  /* Match any Markdown heading (# ## ### #### etc.)
+     OR lines that look like chapter markers (ALL CAPS lines,
+     lines starting with "Chapter", "Part", "Prologue",
+     "Epilogue", "Interlude", etc.)                          */
+  const chapterPattern = /^(#{1,4})\s+(.+)$/;
+  const altPattern = /^(chapter|part|prologue|epilogue|interlude|prelude|coda|act|scene|note|afterword|foreword|introduction|appendix)\b/i;
+  const capsPattern = /^[A-Z][A-Z\s\d\:\-\.\,\'\"\/\!\?]+$/;
+
+  const lines = rawText.split('\n');
+  const chapters = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    let isChapter = false;
+    let title = '';
+
+    const mdMatch = line.match(chapterPattern);
+    if (mdMatch && mdMatch[1].length <= 3) {
+      isChapter = true;
+      title = mdMatch[2].trim();
+    } else if (altPattern.test(line) && line.length < 120) {
+      isChapter = true;
+      title = line;
+    } else if (capsPattern.test(line) && line.length > 3 && line.length < 100) {
+      isChapter = true;
+      title = line;
+    }
+
+    if (isChapter && title) {
+      chapters.push({ title, lineIndex: i });
+    }
+  }
+
+  return chapters;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SLUG
+   ══════════════════════════════════════════════════════════════ */
+const slugUsed = {};
+function slugify(bookId, text) {
+  let base = bookId + '-' + text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 60);
+  if (slugUsed[base]) {
+    slugUsed[base]++;
+    base = base + '-' + slugUsed[base];
+  } else {
+    slugUsed[base] = 1;
+  }
+  return base;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BUILD DOM
+   ══════════════════════════════════════════════════════════════ */
+function isPlaceholder(raw) {
+  return raw.trim().startsWith('PASTE THE FULL CONTENT');
+}
+
+function buildSite() {
+  const booksContainer = document.getElementById('books-container');
+  const heroBooksEl    = document.getElementById('hero-books');
+  const navTree        = document.getElementById('nav-tree');
+
+  let hasAnyContent = false;
+
+  BOOKS.forEach((book, bi) => {
+    const bookHasContent = !isPlaceholder(book.raw);
+    if (bookHasContent) hasAnyContent = true;
+
+    /* ── Hero link ── */
+    const heroItem = document.createElement('a');
+    heroItem.className = 'hero-book-item';
+    heroItem.href = '#' + book.id;
+    heroItem.innerHTML = `
+      <span class="hero-book-num">${book.number}</span>
+      <span class="hero-book-name">${escapeHtml(book.title)}</span>
+    `;
+    heroBooksEl.appendChild(heroItem);
+
+    /* ── Nav book block ── */
+    const navBook = document.createElement('div');
+    navBook.className = 'nav-book';
+
+    const navHeader = document.createElement('div');
+    navHeader.className = 'nav-book-header';
+    navHeader.dataset.book = bi;
+    navHeader.innerHTML = `
+      <span class="nav-book-num">${book.number}</span>
+      <span class="nav-book-title">${escapeHtml(book.title)}</span>
+      <span class="nav-book-arrow">▶</span>
+    `;
+
+    const navChapters = document.createElement('ul');
+    navChapters.className = 'nav-chapters';
+
+    navBook.appendChild(navHeader);
+    navBook.appendChild(navChapters);
+    navTree.appendChild(navBook);
+
+    /* ── Book section ── */
+    const section = document.createElement('section');
+    section.className = 'book-section';
+    section.id = book.id;
+
+    /* Book title block */
+    const titleBlock = document.createElement('div');
+    titleBlock.className = 'book-title-block';
+    titleBlock.innerHTML = `
+      <div class="book-number-label">${escapeHtml(book.number)}</div>
+      <h2 class="book-main-title">${escapeHtml(book.title)}</h2>
+      <div class="book-ornament">· · ·</div>
+    `;
+    section.appendChild(titleBlock);
+
+    if (!bookHasContent) {
+      /* Show placeholder notice */
+      const notice = document.createElement('div');
+      notice.style.maxWidth = 'var(--reading-max)';
+      notice.style.margin = '0 auto 60px';
+      notice.style.padding = '0 40px';
+      notice.innerHTML = `
+        <div style="border:1px solid var(--border2);border-left:3px solid var(--ember);
+             background:var(--surface);padding:28px 32px;border-radius:2px;">
+          <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:.25em;
+               color:var(--ember);text-transform:uppercase;margin-bottom:12px;">
+            Content Pending
+          </div>
+          <p style="font-size:14px;color:var(--smoke);line-height:1.8;">
+            Paste the full text of <strong style="color:var(--parchment)">${escapeHtml(book.title)}</strong>
+            into the <code style="font-family:var(--font-mono);font-size:12px;color:var(--gold2);
+            background:var(--bg);padding:2px 6px;border-radius:2px;border:1px solid var(--border2)">
+            BOOK_${bi+1}_RAW</code> variable at the top of the <code>&lt;script&gt;</code> block.
+          </p>
+        </div>
+      `;
+      section.appendChild(notice);
+      booksContainer.appendChild(section);
+      return;
+    }
+
+    /* ── Detect chapters ── */
+    const chapters = extractChapters(book.raw);
+    const lines    = book.raw.split('\n');
+
+    /* Build chapter nav items */
+    chapters.forEach((ch, ci) => {
+      const id = slugify(book.id, ch.title);
+      ch.id = id;
+
+      const li = document.createElement('li');
+      const a  = document.createElement('a');
+      a.href = '#' + id;
+      a.textContent = ch.title.replace(/^#{1,6}\s*/, '');
+      a.dataset.chapterId = id;
+      li.appendChild(a);
+      navChapters.appendChild(li);
+    });
+
+    /* ── Render content ── */
+    if (chapters.length === 0) {
+      /* No chapter headings detected — render as single prose block */
+      const proseDiv = document.createElement('div');
+      proseDiv.className = 'prose-block';
+      proseDiv.innerHTML = mdToHtml(book.raw);
+      section.appendChild(proseDiv);
+    } else {
+      /* Split content by chapter boundaries */
+      chapters.forEach((ch, ci) => {
+        const nextLine = ci + 1 < chapters.length ? chapters[ci + 1].lineIndex : lines.length;
+        const chunkLines = lines.slice(ch.lineIndex, nextLine);
+
+        /* Build chapter wrapper */
+        const chapterBlock = document.createElement('div');
+        chapterBlock.className = 'chapter-block';
+        chapterBlock.id = ch.id;
+
+        /* Chapter heading — use the exact text from the file */
+        const headingLine = chunkLines[0] || '';
+        const headingText = headingLine.replace(/^#{1,6}\s*/, '').trim();
+
+        const hEl = document.createElement('h3');
+        hEl.className = 'chapter-heading';
+        hEl.textContent = headingText;
+
+        const subEl = document.createElement('div');
+        subEl.className = 'chapter-sub';
+        subEl.textContent = book.number + ' · ' + book.title;
+
+        chapterBlock.appendChild(hEl);
+        chapterBlock.appendChild(subEl);
+        section.appendChild(chapterBlock);
+
+        /* Prose body (lines after the heading) */
+        const bodyLines = chunkLines.slice(1);
+        if (bodyLines.some(l => l.trim())) {
+          const proseDiv = document.createElement('div');
+          proseDiv.className = 'prose-block';
+          proseDiv.innerHTML = mdToHtml(bodyLines.join('\n'));
+          section.appendChild(proseDiv);
+        }
+
+        /* Inter-chapter divider (except after last) */
+        if (ci < chapters.length - 1) {
+          const div = document.createElement('div');
+          div.className = 'section-divider';
+          div.innerHTML = '<span class="section-divider-glyph">✦</span>';
+          section.appendChild(div);
+        }
+      });
+    }
+
+    /* Book-end divider */
+    const bookDivider = document.createElement('div');
+    bookDivider.style.cssText = 'max-width:720px;margin:60px auto;padding:0 40px;';
+    bookDivider.innerHTML = `
+      <div style="height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);"></div>
+    `;
+    section.appendChild(bookDivider);
+
+    booksContainer.appendChild(section);
+
+    /* Nav header click: toggle chapters list */
+    navHeader.addEventListener('click', () => {
+      const isOpen = navChapters.classList.contains('open');
+      navChapters.classList.toggle('open', !isOpen);
+      navHeader.classList.toggle('expanded', !isOpen);
+      if (!isOpen) {
+        // scroll to book
+        document.getElementById(book.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        closeNav();
+      }
+    });
+  });
+
+  /* Show global notice if NO book has content */
+  if (!hasAnyContent) {
+    document.getElementById('books-container').insertAdjacentHTML('afterbegin', `
+      <div id="content-notice" class="show" style="padding:0 40px;margin:48px auto;max-width:720px;">
+        <div style="border:1px solid var(--border2);border-left:3px solid var(--ember);
+             background:var(--surface);padding:36px;border-radius:2px;">
+          <h3 style="font-family:var(--font-mono);font-size:10px;letter-spacing:.25em;color:var(--ember);
+               text-transform:uppercase;margin-bottom:16px;">How to load your books</h3>
+          <p style="font-size:14px;color:var(--smoke);line-height:1.9;margin-bottom:10px;">
+            Open this HTML file in a text editor. Near the top of the
+            <code style="font-family:var(--font-mono);font-size:12px;color:var(--gold2);
+            background:var(--bg);padding:2px 6px;border-radius:2px;border:1px solid var(--border2)">&lt;script&gt;</code>
+            block you will see three variables:
+          </p>
+          <p style="font-size:13px;color:var(--ash);font-family:var(--font-mono);
+               background:var(--bg);border:1px solid var(--border);padding:16px 20px;
+               border-radius:2px;line-height:2;">
+            const BOOK_1_RAW = \`...\`;<br>
+            const BOOK_2_RAW = \`...\`;<br>
+            const BOOK_3_RAW = \`...\`;
+          </p>
+          <p style="font-size:14px;color:var(--smoke);line-height:1.9;margin-top:14px;">
+            Replace each <code style="font-family:var(--font-mono);font-size:12px;color:var(--gold2);
+            background:var(--bg);padding:2px 6px;border-radius:2px;">...</code>
+            placeholder with the full raw content of the corresponding .md file.
+            The app will detect all headings, build navigation, and render everything exactly as written.
+          </p>
+        </div>
+      </div>
+    `);
+  }
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   NAVIGATION
+   ══════════════════════════════════════════════════════════════ */
+function openNav() {
+  document.body.classList.add('nav-open');
+  document.getElementById('menu-btn').setAttribute('aria-expanded','true');
+}
+function closeNav() {
+  document.body.classList.remove('nav-open');
+  document.getElementById('menu-btn').setAttribute('aria-expanded','false');
+}
+
+document.getElementById('menu-btn').addEventListener('click', () => {
+  document.body.classList.contains('nav-open') ? closeNav() : openNav();
+});
+document.getElementById('overlay').addEventListener('click', closeNav);
+
+/* Close nav on chapter link click (mobile) */
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#sidebar a')) {
+    closeNav();
+  }
+});
+
+/* ══════════════════════════════════════════════════════════════
+   SCROLL — progress, header labels, active chapter highlight
+   ══════════════════════════════════════════════════════════════ */
+const headerTitle   = document.getElementById('header-title');
+const headerChapter = document.getElementById('header-chapter');
+const progressBar   = document.getElementById('progress-bar');
+const backTop       = document.getElementById('back-top');
+const siteHeader    = document.getElementById('site-header');
+
+let ticking = false;
+let allChapterEls = [];
+
+function gatherChapterEls() {
+  allChapterEls = Array.from(document.querySelectorAll('.chapter-block[id]'));
+}
+
+function onScroll() {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => {
+    const scrollTop = window.scrollY;
+    const docH = document.documentElement.scrollHeight - window.innerHeight;
+    const pct  = docH > 0 ? (scrollTop / docH) * 100 : 0;
+
+    progressBar.style.width = pct.toFixed(2) + '%';
+
+    const scrolled = scrollTop > 60;
+    siteHeader.classList.toggle('scrolled', scrolled);
+    headerTitle.classList.toggle('visible', scrolled);
+    backTop.classList.toggle('visible', scrollTop > 400);
+
+    /* Active chapter detection */
+    let current = null;
+    const threshold = window.innerHeight * 0.4;
+    for (let i = allChapterEls.length - 1; i >= 0; i--) {
+      const el = allChapterEls[i];
+      if (el.getBoundingClientRect().top <= threshold) {
+        current = el;
+        break;
+      }
+    }
+
+    /* Update header chapter label */
+    if (current && scrolled) {
+      const hEl = current.querySelector('.chapter-heading');
+      headerChapter.textContent = hEl ? hEl.textContent : '';
+      headerChapter.classList.add('visible');
+    } else {
+      headerChapter.classList.remove('visible');
+    }
+
+    /* Highlight nav link */
+    document.querySelectorAll('.nav-chapters li a').forEach(a => {
+      a.classList.remove('current');
+    });
+    if (current) {
+      const activeLink = document.querySelector(`.nav-chapters li a[data-chapter-id="${current.id}"]`);
+      if (activeLink) activeLink.classList.add('current');
+    }
+
+    /* Open the nav book section for the active book */
+    if (current) {
+      const bookSection = current.closest('.book-section');
+      if (bookSection) {
+        const bookIdx = Array.from(document.querySelectorAll('.book-section')).indexOf(bookSection);
+        document.querySelectorAll('.nav-book-header').forEach((h, i) => {
+          h.classList.toggle('active', i === bookIdx);
+        });
+      }
+    }
+
+    ticking = false;
+  });
+}
+
+window.addEventListener('scroll', onScroll, { passive: true });
+
+backTop.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+/* ══════════════════════════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════════════════════════ */
+buildSite();
+gatherChapterEls();
+
+/* Expand first book's nav chapters by default */
+const firstNavChapters = document.querySelector('.nav-chapters');
+const firstNavHeader   = document.querySelector('.nav-book-header');
+if (firstNavChapters && !isPlaceholder(BOOK_1_RAW)) {
+  firstNavChapters.classList.add('open');
+  if (firstNavHeader) firstNavHeader.classList.add('expanded');
+}
+
+onScroll();
+</script>
+</body>
+</html>
